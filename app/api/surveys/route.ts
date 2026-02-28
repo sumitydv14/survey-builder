@@ -8,10 +8,32 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const survey = await Survey.create(body);
+    const {
+      title,
+      description,
+      product,
+      coverImage,
+      schemaJson,
+    } = body;
+
+    if (!title) {
+      return Response.json(
+        { error: "Title is required" },
+        { status: 400 }
+      );
+    }
+
+    const survey = await Survey.create({
+      title,
+      description,
+      product,
+      coverImage,
+      schemaJson,
+    });
 
     return Response.json({ survey });
   } catch (error: any) {
+    console.error("Survey create error:", error);
     return Response.json(
       { error: error.message },
       { status: 500 }

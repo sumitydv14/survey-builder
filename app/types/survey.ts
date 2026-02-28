@@ -10,5 +10,6 @@ export interface ISurvey {
   product: string;
   rawCode?: string;
   schemaJson?: any;
+  coverImage?: string;
   versions?: ISurveyVersion[];
 }

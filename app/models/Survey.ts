@@ -1,27 +1,23 @@
-import mongoose, { Schema, model, models } from "mongoose";
-import { ISurvey } from "../types/survey";
+import mongoose from "mongoose";
 
-const SurveySchema = new Schema<ISurvey>(
+const SurveySchema = new mongoose.Schema(
   {
     title: String,
     description: String,
     product: String,
     rawCode: String,
-    schemaJson: Object,
-
-    versions: {
-      type: [
-        {
-          code: { type: String },
-          format: { type: String },
-          createdAt: { type: Date, default: Date.now },
-        },
-      ],
-      default: [],
-    },
+    schemaJson: mongoose.Schema.Types.Mixed,
+    coverImage: String,  // ✅ MUST BE HERE
+    versions: [
+      {
+        code: String,
+        format: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
 
-export default models.Survey ||
-  model<ISurvey>("Survey", SurveySchema);
+export default mongoose.models.Survey ||
+  mongoose.model("Survey", SurveySchema);
