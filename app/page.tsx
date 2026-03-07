@@ -28,13 +28,6 @@ export default function HomePage() {
           >
             Go to Dashboard
           </button>
-
-          <button
-            onClick={() => router.push("/login")}
-            className="w-full border py-2 rounded-md"
-          >
-            Login
-          </button>
         </div>
       </motion.div>
     </main>

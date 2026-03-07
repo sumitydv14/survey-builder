@@ -29,9 +29,9 @@ export default function Preview() {
       const data = await res.json();
       setSurvey(data.survey);
 
-      if (data?.survey?.schemaJson) {
+      if (data?.survey?.rawCode) {
         const { schema: parsed } = parseSurvey(
-          data.survey.schemaJson,
+          data.survey.rawCode,
           data.survey.format ?? "xml"
         );
         setSchema(parsed);

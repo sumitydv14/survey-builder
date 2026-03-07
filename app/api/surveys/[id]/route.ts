@@ -12,6 +12,26 @@ export async function GET(
   return Response.json({ survey });
 }
 
+// Called by autosave to keep rawCode + format current
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { id } = await context.params;
+    const body = await req.json();
+    const survey = await Survey.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true }
+    );
+    return Response.json({ survey });
+  } catch (error: any) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }

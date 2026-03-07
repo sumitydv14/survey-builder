@@ -5,7 +5,6 @@ import { createSurvey, getSurveys } from "../services/surveyApi";
 import { motion, AnimatePresence } from "framer-motion";
 import ImportSchemaModal from "../components/ui/ImportSchemaModal";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 interface Survey {
   _id: string;
@@ -73,11 +72,9 @@ function Field({ label, value, onChange, placeholder, onEnter }: {
 }
 
 // ─── Create Modal ─────────────────────────────────────────────────────────────
-function CreateModal({ onClose, onCreate, openImport, setOpenImport }: {
+function CreateModal({ onClose, onCreate }: {
   onClose: () => void;
   onCreate: (data: { title: string; description: string; product: string; coverImage: string }) => Promise<void>;
-  openImport: boolean;
-  setOpenImport: (open: boolean) => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -172,10 +169,6 @@ function CreateModal({ onClose, onCreate, openImport, setOpenImport }: {
             <Field label="Title *" value={title} onChange={setTitle} placeholder="e.g. Customer Satisfaction Q1" onEnter={handleSubmit} />
             <Field label="Description" value={description} onChange={setDescription} placeholder="Brief description of this survey" />
             <Field label="Product" value={product} onChange={setProduct} placeholder="e.g. Puma Running Shoes" />
-            <button onClick={() => setOpenImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#8b949e] hover:text-[#e6edf3] border border-[#30363d] hover:border-[#8b949e] rounded-lg transition-all">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z" /><path d="M11.78 4.72a.749.749 0 1 1-1.06 1.06L8.75 3.81v6.44a.75.75 0 0 1-1.5 0V3.81L5.28 5.78a.749.749 0 1 1-1.06-1.06l3-3a.749.749 0 0 1 1.06 0Z" /></svg>
-              Import
-            </button>
           </div>
           <div className="flex gap-2 mt-5">
             <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-[#30363d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#8b949e] text-sm transition-all">
@@ -200,11 +193,10 @@ function CreateModal({ onClose, onCreate, openImport, setOpenImport }: {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [showCreate, setShowCreate] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
+  // Survey creation is now handled by /surveys/create page
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openImport, setOpenImport] = useState(false);
-  const [importData, setImportData] = useState<string | null>(null);
   const router = useRouter();
 
   const loadSurveys = async () => {
@@ -215,20 +207,18 @@ export default function Dashboard() {
   };
 
   useEffect(() => { loadSurveys(); }, []);
-  const handleCreate = async (formData: { title: string; description: string; product: string; coverImage: string }) => {
-    const res = await fetch("/api/surveys", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-      ...formData,
-      schemaJson: importData,
-    }),
-    });
-    const data = await res.json();
-    setShowCreate(false);
-    if (data?.survey?._id) router.push(`/surveys/${data.survey._id}/editor`);
-    else loadSurveys();
-  };
+
+  // const handleCreate = async (formData: { title: string; description: string; product: string; coverImage: string }) => {
+  //   const res = await fetch("/api/surveys", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify(formData),
+  //   });
+  //   const data = await res.json();
+  //   setShowCreate(false);
+  //   if (data?.survey?._id) router.push(`/surveys/${data.survey._id}/editor`);
+  //   else loadSurveys();
+  // };
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/surveys/${id}`, { method: "DELETE" });
@@ -236,29 +226,11 @@ export default function Dashboard() {
     setDeletingId(null);
   };
 
-  const handelUpload = (fileText: string) => {
-    setImportData(fileText);
-    setOpenImport(false);
-  }
-
   const surveyToDelete = surveys.find((s) => s._id === deletingId);
 
   return (
     <div className="min-h-screen bg-[#0d1117]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* <header className="border-b border-[#21262d] bg-[#161b22] sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#238636] to-[#58a6ff] flex items-center justify-center text-xs font-bold text-white">S</div>
-            <span className="text-[#e6edf3] font-semibold text-sm">Survey Builder</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-[#238636] hover:bg-[#2ea043] rounded-lg transition-all font-medium">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z" /></svg>
-              New Survey
-            </button>
-          </div>
-        </div>
-      </header> */}
+      {/* Action bar — Import + New Survey */}
 
       <main className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-6">
@@ -275,7 +247,7 @@ export default function Dashboard() {
             <div className="w-16 h-16 rounded-2xl bg-[#161b22] border border-[#21262d] flex items-center justify-center text-3xl">📋</div>
             <p className="text-[#e6edf3] font-semibold">No surveys yet</p>
             <p className="text-[#8b949e] text-sm text-center max-w-xs">Create your first survey or import an existing schema to get started.</p>
-            <button onClick={() => setShowCreate(true)} className="mt-2 px-4 py-2 bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-semibold rounded-lg transition-all">Create Survey</button>
+            <button onClick={() => router.push("/surveys/create")} className="mt-2 px-4 py-2 bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-semibold rounded-lg transition-all">Create Survey</button>
           </motion.div>
         ) : (
           <motion.div
@@ -296,10 +268,6 @@ export default function Dashboard() {
       </main>
 
       <AnimatePresence>
-        {showCreate && <CreateModal onClose={() => setShowCreate(false)} onCreate={handleCreate} openImport={openImport} setOpenImport={setOpenImport}  />}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {deletingId && surveyToDelete && (
           <DeleteConfirm survey={surveyToDelete} onConfirm={() => handleDelete(deletingId)} onCancel={() => setDeletingId(null)} />
         )}
@@ -308,7 +276,15 @@ export default function Dashboard() {
       <ImportSchemaModal
         isOpen={openImport}
         onClose={() => setOpenImport(false)}
-        onUpload={handelUpload}
+        onUpload={async (fileText) => {
+          const res = await fetch("/api/surveys", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: "Imported Survey", rawCode: fileText }),
+          });
+          const data = await res.json();
+          router.push(`/surveys/${data.survey._id}/editor`);
+        }}
       />
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -326,7 +302,7 @@ function SurveyCard({ survey, onClick, onDelete }: {
     "from-[#da3633] to-[#f85149]",
   ];
   const colorIdx = survey._id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % gradients.length;
-  const initials = survey.title?.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "S";
+  const initials = survey.title.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "S";
   const date = survey.createdAt
     ? new Date(survey.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
@@ -340,11 +316,7 @@ function SurveyCard({ survey, onClick, onDelete }: {
       {/* Cover banner */}
       <div className="relative h-32 flex-shrink-0 overflow-hidden">
         {survey.coverImage ? (
-          <img
-            src={survey.coverImage}
-            alt={survey.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={survey.coverImage} alt={survey.title} className="w-full h-full object-cover" />
         ) : (
           <div className={`w-full h-full bg-gradient-to-br ${gradients[colorIdx]} opacity-60`} />
         )}

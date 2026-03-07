@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (fileText: string) => void;
+  onUpload: (fileText: string, fileName: string, format: string) => void;
 }
 
 const ALLOWED_EXTS = ["xml", "json", "yaml", "yml"];
@@ -59,7 +59,7 @@ export default function ImportSchemaModal({ isOpen, onClose, onUpload }: Props) 
   };
 
   const handleImport = () => {
-    onUpload(fileText);
+    onUpload(fileText, fileName, fileExt === "yml" ? "yaml" : fileExt);
     handleClose();
   };
 
@@ -221,9 +221,6 @@ export default function ImportSchemaModal({ isOpen, onClose, onUpload }: Props) 
 
             {/* Footer */}
             <div className="px-5 py-4 border-t border-[#21262d] flex items-center justify-between gap-3 bg-[#0d1117]/50">
-              <p className="text-[10px] text-[#484f58] font-mono">
-                Supported: .xml .json .yaml .yml
-              </p>
               <div className="flex gap-2">
                 <button
                   onClick={handleClose}

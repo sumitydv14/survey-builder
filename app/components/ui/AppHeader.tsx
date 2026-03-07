@@ -4,8 +4,92 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+// ─── Download helper ──────────────────────────────────────────────────────────
+function downloadExampleSchema(format: "xml" | "json" | "yaml") {
+  const examples = {
+    xml: {
+      mime: "application/xml", ext: "xml",
+      content: `<survey>
+  <question id="q1" type="single-select">
+    <label>How satisfied are you with our product?</label>
+    <option>Very Satisfied</option>
+    <option>Satisfied</option>
+    <option>Neutral</option>
+    <option>Dissatisfied</option>
+  </question>
+
+  <question id="q2" type="multi-select">
+    <label>Which features do you use most?</label>
+    <option>Dashboard</option>
+    <option>Reports</option>
+    <option>Notifications</option>
+    <option>Settings</option>
+  </question>
+
+  <question id="q3" type="rating">
+    <label>Rate your overall experience (1–5)</label>
+  </question>
+
+  <question id="q4" type="text">
+    <label>Any suggestions for improvement?</label>
+  </question>
+</survey>`,
+    },
+    json: {
+      mime: "application/json", ext: "json",
+      content: JSON.stringify({
+        questions: [
+          { id: "q1", type: "single-select", label: "How satisfied are you with our product?", options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied"] },
+          { id: "q2", type: "multi-select", label: "Which features do you use most?", options: ["Dashboard", "Reports", "Notifications", "Settings"] },
+          { id: "q3", type: "rating", label: "Rate your overall experience (1–5)" },
+          { id: "q4", type: "text", label: "Any suggestions for improvement?" },
+        ],
+      }, null, 2),
+    },
+    yaml: {
+      mime: "text/yaml", ext: "yaml",
+      content: `questions:
+  - id: q1
+    type: single-select
+    label: "How satisfied are you with our product?"
+    options:
+      - Very Satisfied
+      - Satisfied
+      - Neutral
+      - Dissatisfied
+
+  - id: q2
+    type: multi-select
+    label: "Which features do you use most?"
+    options:
+      - Dashboard
+      - Reports
+      - Notifications
+      - Settings
+
+  - id: q3
+    type: rating
+    label: "Rate your overall experience (1–5)"
+
+  - id: q4
+    type: text
+    label: "Any suggestions for improvement?"`,
+    },
+  };
+  const { content, mime, ext } = examples[format];
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `example-survey.${ext}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Nav items config ─────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   {
+    type: "link" as const,
     label: "Dashboard",
     href: "/dashboard",
     icon: (
@@ -15,35 +99,62 @@ const NAV_ITEMS = [
     ),
   },
   {
+    type: "link" as const,
     label: "New Survey",
-    href: "/dashboard?new=1",
+    href: "/surveys/create",
     icon: (
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
         <path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z" />
       </svg>
     ),
   },
+  {
+    type: "download" as const,
+    label: "Example Schema",
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14ZM7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.779a.749.749 0 1 1 1.06-1.06l1.97 1.97Z" />
+      </svg>
+    ),
+  },
 ];
 
+const FORMAT_OPTIONS = [
+  { fmt: "xml"  as const, label: "XML",  color: "text-[#3fb950]", border: "border-[#238636]/40", bg: "hover:bg-[#238636]/10" },
+  { fmt: "json" as const, label: "JSON", color: "text-[#58a6ff]", border: "border-[#1f6feb]/40", bg: "hover:bg-[#1f6feb]/10" },
+  { fmt: "yaml" as const, label: "YAML", color: "text-[#e3b341]", border: "border-[#bf8700]/40", bg: "hover:bg-[#bf8700]/10" },
+];
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dlOpen, setDlOpen] = useState(false);       // desktop download dropdown
+  const [dlMenuOpen, setDlMenuOpen] = useState(false); // mobile menu download sub
   const menuRef = useRef<HTMLDivElement>(null);
+  const dlRef = useRef<HTMLDivElement>(null);
 
-  // Close menu on outside click
+  // Close hamburger menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Close menu on route change
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  // Close desktop download dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dlRef.current && !dlRef.current.contains(e.target as Node)) setDlOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Close everything on route change
+  useEffect(() => { setMenuOpen(false); setDlOpen(false); }, [pathname]);
 
   const isActive = (href: string) => pathname === href.split("?")[0];
 
@@ -61,30 +172,73 @@ export default function AppHeader() {
 
         {/* Center: Nav links (desktop) */}
         <nav className="hidden md:flex items-center gap-1">
-          {NAV_ITEMS.filter(
-  (item) => !(item.href === "/dashboard" && pathname === "/dashboard")
-).map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                isActive(item.href)
-                  ? "bg-[#21262d] text-[#e6edf3]"
-                  : "text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]/60"
-              }`}
-            >
-              <span className={isActive(item.href) ? "text-[#58a6ff]" : ""}>{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+          {NAV_ITEMS.filter((item) => !(item.type === "link" && item.href === "/dashboard" && pathname === "/dashboard")).map((item) => {
+
+            // ── Download dropdown nav item ──
+            if (item.type === "download") {
+              return (
+                <div key="download" className="relative" ref={dlRef}>
+                  <button
+                    onClick={() => setDlOpen((v) => !v)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+                      dlOpen ? "bg-[#21262d] text-[#e6edf3]" : "text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]/60"
+                    }`}
+                  >
+                    <span className={dlOpen ? "text-[#58a6ff]" : ""}>{item.icon}</span>
+                    {item.label}
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className={`transition-transform duration-150 ${dlOpen ? "rotate-180" : ""}`}>
+                      <path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z" />
+                    </svg>
+                  </button>
+
+                  {dlOpen && (
+                    <div className="absolute left-0 top-9 w-52 bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
+                      <div className="px-3 py-2 border-b border-[#21262d]">
+                        <p className="text-[10px] font-semibold text-[#484f58] uppercase tracking-wider">Download example</p>
+                      </div>
+                      <div className="p-1.5 space-y-0.5">
+                        {FORMAT_OPTIONS.map(({ fmt, label, color, border, bg }) => (
+                          <button
+                            key={fmt}
+                            onClick={() => { downloadExampleSchema(fmt); setDlOpen(false); }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-left transition-all ${bg} group`}
+                          >
+                            <span className={`font-mono font-bold px-1.5 py-0.5 rounded border text-[10px] ${color} ${border} bg-transparent`}>
+                              {label}
+                            </span>
+                            <span className="text-[#8b949e] group-hover:text-[#e6edf3] transition-colors">example-survey.{fmt}</span>
+                            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="ml-auto text-[#484f58]">
+                              <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14ZM7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.779a.749.749 0 1 1 1.06-1.06l1.97 1.97Z" />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // ── Regular link nav item ──
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+                  isActive(item.href) ? "bg-[#21262d] text-[#e6edf3]" : "text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]/60"
+                }`}
+              >
+                <span className={isActive(item.href) ? "text-[#58a6ff]" : ""}>{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Right: Breadcrumb pill + menu */}
+        {/* Right: Breadcrumb pill + hamburger */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Active page breadcrumb pill */}
           <ActiveBreadcrumb pathname={pathname} />
 
-          {/* Hamburger / menu button */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
@@ -102,37 +256,70 @@ export default function AppHeader() {
               </svg>
             </button>
 
-            {/* Dropdown */}
             {menuOpen && (
               <div className="absolute right-0 top-10 w-56 bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
-                {/* Menu header */}
                 <div className="px-3 py-2.5 border-b border-[#21262d]">
                   <p className="text-[10px] font-semibold text-[#484f58] uppercase tracking-wider">Navigation</p>
                 </div>
 
-                {/* Nav items */}
                 <div className="p-1.5 space-y-0.5">
-                  {NAV_ITEMS.map((item) => (
-                    <button
-                      key={item.href}
-                      onClick={() => { router.push(item.href); setMenuOpen(false); }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-all duration-150 ${
-                        isActive(item.href)
-                          ? "bg-[#21262d] text-[#e6edf3]"
-                          : "text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]/60"
-                      }`}
-                    >
-                      <span className={`flex-shrink-0 ${isActive(item.href) ? "text-[#58a6ff]" : ""}`}>{item.icon}</span>
-                      <span className="flex-1">{item.label}</span>
-                      {isActive(item.href) && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#58a6ff] flex-shrink-0" />
-                      )}
-                    </button>
-                  ))}
+                  {NAV_ITEMS.filter((item) => !(item.type === "link" && item.href === "/dashboard" && pathname === "/dashboard")).map((item) => {
+
+                    // ── Download item in hamburger ──
+                    if (item.type === "download") {
+                      return (
+                        <div key="download-mobile">
+                          <button
+                            onClick={() => setDlMenuOpen((v) => !v)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]/60 transition-all"
+                          >
+                            <span className="flex-shrink-0">{item.icon}</span>
+                            <span className="flex-1">{item.label}</span>
+                            <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className={`transition-transform ${dlMenuOpen ? "rotate-180" : ""}`}>
+                              <path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z" />
+                            </svg>
+                          </button>
+
+                          {dlMenuOpen && (
+                            <div className="mx-1 mt-0.5 bg-[#0d1117] border border-[#30363d] rounded-lg overflow-hidden">
+                              {FORMAT_OPTIONS.map(({ fmt, label, color, border, bg }) => (
+                                <button
+                                  key={fmt}
+                                  onClick={() => { downloadExampleSchema(fmt); setDlMenuOpen(false); setMenuOpen(false); }}
+                                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-all ${bg}`}
+                                >
+                                  <span className={`font-mono font-bold px-1.5 py-0.5 rounded border text-[10px] ${color} ${border}`}>{label}</span>
+                                  <span className="text-[#8b949e]">example-survey.{fmt}</span>
+                                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="ml-auto text-[#484f58]">
+                                    <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14ZM7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.779a.749.749 0 1 1 1.06-1.06l1.97 1.97Z" />
+                                  </svg>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // ── Regular link in hamburger ──
+                    return (
+                      <button
+                        key={item.href}
+                        onClick={() => { router.push(item.href); setMenuOpen(false); }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-all duration-150 ${
+                          isActive(item.href) ? "bg-[#21262d] text-[#e6edf3]" : "text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]/60"
+                        }`}
+                      >
+                        <span className={`flex-shrink-0 ${isActive(item.href) ? "text-[#58a6ff]" : ""}`}>{item.icon}</span>
+                        <span className="flex-1">{item.label}</span>
+                        {isActive(item.href) && <span className="w-1.5 h-1.5 rounded-full bg-[#58a6ff] flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Divider + extra links */}
-                <div className="border-t border-[#21262d] p-1.5 space-y-0.5">
+                {/* GitHub link */}
+                <div className="border-t border-[#21262d] p-1.5">
                   <a
                     href="https://github.com"
                     target="_blank"
@@ -149,7 +336,6 @@ export default function AppHeader() {
                   </a>
                 </div>
 
-                {/* Version footer */}
                 <div className="px-3 py-2 border-t border-[#21262d] bg-[#0d1117]/40">
                   <p className="text-[10px] text-[#484f58] font-mono">Survey Builder v1.0</p>
                 </div>
@@ -168,11 +354,9 @@ function ActiveBreadcrumb({ pathname }: { pathname: string }) {
     "/dashboard": { label: "Dashboard", color: "text-[#58a6ff] bg-[#1f6feb]/10 border-[#1f6feb]/20" },
     "/login":     { label: "Login",     color: "text-[#8b949e] bg-[#21262d] border-[#30363d]" },
   };
-
-  // Editor / preview pages
-  if (pathname.includes("/editor"))  return <Pill label="Editor"  color="text-[#3fb950] bg-[#238636]/10 border-[#238636]/20" />;
-  if (pathname.includes("/preview")) return <Pill label="Preview" color="text-[#e3b341] bg-[#bf8700]/10 border-[#bf8700]/20" />;
-
+  if (pathname.includes("/editor"))       return <Pill label="Editor"  color="text-[#3fb950] bg-[#238636]/10 border-[#238636]/20" />;
+  if (pathname.includes("/preview"))      return <Pill label="Preview" color="text-[#e3b341] bg-[#bf8700]/10 border-[#bf8700]/20" />;
+  if (pathname.includes("/surveys/create")) return <Pill label="Create" color="text-[#a371f7] bg-[#8957e5]/10 border-[#8957e5]/20" />;
   const match = crumbs[pathname];
   if (!match) return null;
   return <Pill label={match.label} color={match.color} />;

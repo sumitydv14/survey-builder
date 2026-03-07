@@ -6,6 +6,7 @@ const SurveySchema = new mongoose.Schema(
     description: String,
     product: String,
     rawCode: String,
+    format: { type: String, default: "xml" },
     schemaJson: mongoose.Schema.Types.Mixed,
     coverImage: String,  // ✅ MUST BE HERE
     versions: [

@@ -39,8 +39,12 @@ export default function SurveyEditor() {
             if (!surveyId) return;
             const res = await fetch(`/api/surveys/${surveyId}`);
             const data = await res.json();
-            if (data?.survey?.schemaJson) {
-                setCode(data.survey.schemaJson);
+            // Restore format first so the editor parses the code correctly
+            if (data?.survey?.format) {
+                setFormat(data.survey.format);
+            }
+            if (data?.survey?.rawCode) {
+                setCode(data.survey.rawCode);
             }
         };
         loadSurvey();
